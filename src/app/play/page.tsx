@@ -1259,7 +1259,10 @@ function PlayPageClient() {
         const now = Date.now();
         if (
           now - lastSaveTimeRef.current >
-          (process.env.NEXT_PUBLIC_STORAGE_TYPE === 'd1' ? 10000 : 5000)
+          (process.env.NEXT_PUBLIC_STORAGE_TYPE === 'd1' ||
+          process.env.NEXT_PUBLIC_STORAGE_TYPE === 'upstash'
+            ? 10000
+            : 5000)
         ) {
           saveCurrentPlayProgress();
           lastSaveTimeRef.current = now;
