@@ -1257,13 +1257,14 @@ function PlayPageClient() {
 
       artPlayerRef.current.on('video:timeupdate', () => {
         const now = Date.now();
-        if (
-          now - lastSaveTimeRef.current >
-          (process.env.NEXT_PUBLIC_STORAGE_TYPE === 'd1' ||
-          process.env.NEXT_PUBLIC_STORAGE_TYPE === 'upstash'
-            ? 10000
-            : 5000)
-        ) {
+        let interval = 5000;
+        if (process.env.NEXT_PUBLIC_STORAGE_TYPE === 'd1') {
+          interval = 10000;
+        }
+        if (process.env.NEXT_PUBLIC_STORAGE_TYPE === 'upstash') {
+          interval = 20000;
+        }
+        if (now - lastSaveTimeRef.current > interval) {
           saveCurrentPlayProgress();
           lastSaveTimeRef.current = now;
         }
