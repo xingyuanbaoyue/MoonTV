@@ -85,5 +85,16 @@
       "api": "https://zy.xmm.hk/api.php/provide/vod",
       "name": "小猫咪资源"
     }
+  "cache_time": 7200
+      "api": "https://www.fantuan.tv/api.php/provide/vod",
+      "name": "饭团影视"
+     }
+  "cache_time": 7200
+      "api": "https://cj.lziapi.com/api.php/provide/vod",
+      "name": "影视工厂"
+  "cache_time": 7200
+      "api": "https://www.qiqidys.com/api.php/provide/vod",
+      "name": "七七资源"
+    }
   }
 }
