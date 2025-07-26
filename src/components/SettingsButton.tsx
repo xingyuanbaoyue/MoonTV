@@ -13,6 +13,7 @@ export const SettingsButton: React.FC = () => {
   const [imageProxyUrl, setImageProxyUrl] = useState('');
   const [enableOptimization, setEnableOptimization] = useState(true);
   const [enableImageProxy, setEnableImageProxy] = useState(false);
+  const [enableDoubanProxy, setEnableDoubanProxy] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   // 确保组件已挂载
@@ -30,9 +31,21 @@ export const SettingsButton: React.FC = () => {
         setDefaultAggregateSearch(JSON.parse(savedAggregateSearch));
       }
 
+      const savedEnableDoubanProxy = localStorage.getItem('enableDoubanProxy');
+      const defaultDoubanProxy =
+        (window as any).RUNTIME_CONFIG?.DOUBAN_PROXY || '';
+      if (savedEnableDoubanProxy !== null) {
+        setEnableDoubanProxy(JSON.parse(savedEnableDoubanProxy));
+      } else if (defaultDoubanProxy) {
+        // 如果有默认豆瓣代理配置，则默认开启
+        setEnableDoubanProxy(true);
+      }
+
       const savedDoubanProxyUrl = localStorage.getItem('doubanProxyUrl');
       if (savedDoubanProxyUrl !== null) {
         setDoubanProxyUrl(savedDoubanProxyUrl);
+      } else if (defaultDoubanProxy) {
+        setDoubanProxyUrl(defaultDoubanProxy);
       }
 
       const savedEnableImageProxy = localStorage.getItem('enableImageProxy');
@@ -96,6 +109,13 @@ export const SettingsButton: React.FC = () => {
     }
   };
 
+  const handleDoubanProxyToggle = (value: boolean) => {
+    setEnableDoubanProxy(value);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('enableDoubanProxy', JSON.stringify(value));
+    }
+  };
+
   const handleSettingsClick = () => {
     setIsOpen(!isOpen);
   };
@@ -107,11 +127,14 @@ export const SettingsButton: React.FC = () => {
   // 重置所有设置为默认值
   const handleResetSettings = () => {
     const defaultImageProxy = (window as any).RUNTIME_CONFIG?.IMAGE_PROXY || '';
+    const defaultDoubanProxy =
+      (window as any).RUNTIME_CONFIG?.DOUBAN_PROXY || '';
 
     // 重置所有状态
     setDefaultAggregateSearch(true);
     setEnableOptimization(true);
-    setDoubanProxyUrl('');
+    setDoubanProxyUrl(defaultDoubanProxy);
+    setEnableDoubanProxy(!!defaultDoubanProxy);
     setEnableImageProxy(!!defaultImageProxy);
     setImageProxyUrl(defaultImageProxy);
 
@@ -119,7 +142,11 @@ export const SettingsButton: React.FC = () => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('defaultAggregateSearch', JSON.stringify(true));
       localStorage.setItem('enableOptimization', JSON.stringify(true));
-      localStorage.setItem('doubanProxyUrl', '');
+      localStorage.setItem('doubanProxyUrl', defaultDoubanProxy);
+      localStorage.setItem(
+        'enableDoubanProxy',
+        JSON.stringify(!!defaultDoubanProxy)
+      );
       localStorage.setItem(
         'enableImageProxy',
         JSON.stringify(!!defaultImageProxy)
@@ -212,24 +239,59 @@ export const SettingsButton: React.FC = () => {
             </label>
           </div>
 
-          {/* 豆瓣代理设置 */}
+          {/* 分割线 */}
+          <div className='border-t border-gray-200 dark:border-gray-700'></div>
+
+          {/* 豆瓣代理开关 */}
+          <div className='flex items-center justify-between'>
+            <div>
+              <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300'>
+                启用豆瓣代理
+              </h4>
+              <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
+                启用后，豆瓣数据将通过代理服务器获取
+              </p>
+            </div>
+            <label className='flex items-center cursor-pointer'>
+              <div className='relative'>
+                <input
+                  type='checkbox'
+                  className='sr-only peer'
+                  checked={enableDoubanProxy}
+                  onChange={(e) => handleDoubanProxyToggle(e.target.checked)}
+                />
+                <div className='w-11 h-6 bg-gray-300 rounded-full peer-checked:bg-green-500 transition-colors dark:bg-gray-600'></div>
+                <div className='absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform peer-checked:translate-x-5'></div>
+              </div>
+            </label>
+          </div>
+
+          {/* 豆瓣代理地址设置 */}
           <div className='space-y-3'>
             <div>
               <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300'>
-                豆瓣数据代理
+                豆瓣代理地址
               </h4>
               <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                设置代理URL以绕过豆瓣访问限制，留空则使用服务端API
+                仅在启用豆瓣代理时生效，留空则使用服务器 API
               </p>
             </div>
             <input
               type='text'
-              className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+              className={`w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                enableDoubanProxy
+                  ? 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400'
+                  : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-gray-400 dark:text-gray-500 placeholder-gray-400 dark:placeholder-gray-600 cursor-not-allowed'
+              }`}
               placeholder='例如: https://proxy.example.com/fetch?url='
               value={doubanProxyUrl}
               onChange={(e) => handleDoubanProxyUrlChange(e.target.value)}
+              disabled={!enableDoubanProxy}
             />
           </div>
+
+          {/* 分割线 */}
+          <div className='border-t border-gray-200 dark:border-gray-700'></div>
 
           {/* 图片代理开关 */}
           <div className='flex items-center justify-between'>
