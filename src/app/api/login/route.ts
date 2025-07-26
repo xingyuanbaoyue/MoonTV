@@ -45,9 +45,10 @@ async function generateSignature(
 async function generateAuthCookie(
   username?: string,
   password?: string,
+  role?: 'owner' | 'admin' | 'user',
   includePassword = false
 ): Promise<string> {
-  const authData: any = {};
+  const authData: any = { role: role || 'user' };
 
   // 只在需要时包含 password
   if (includePassword && password) {
@@ -101,7 +102,12 @@ export async function POST(req: NextRequest) {
 
       // 验证成功，设置认证cookie
       const response = NextResponse.json({ ok: true });
-      const cookieValue = await generateAuthCookie(undefined, password, true); // localstorage 模式包含 password
+      const cookieValue = await generateAuthCookie(
+        undefined,
+        password,
+        'user',
+        true
+      ); // localstorage 模式包含 password
       const expires = new Date();
       expires.setDate(expires.getDate() + 7); // 7天过期
 
@@ -133,7 +139,12 @@ export async function POST(req: NextRequest) {
     ) {
       // 验证成功，设置认证cookie
       const response = NextResponse.json({ ok: true });
-      const cookieValue = await generateAuthCookie(username, password, false); // 数据库模式不包含 password
+      const cookieValue = await generateAuthCookie(
+        username,
+        password,
+        'owner',
+        false
+      ); // 数据库模式不包含 password
       const expires = new Date();
       expires.setDate(expires.getDate() + 7); // 7天过期
 
@@ -168,7 +179,12 @@ export async function POST(req: NextRequest) {
 
       // 验证成功，设置认证cookie
       const response = NextResponse.json({ ok: true });
-      const cookieValue = await generateAuthCookie(username, password, false); // 数据库模式不包含 password
+      const cookieValue = await generateAuthCookie(
+        username,
+        password,
+        user?.role || 'user',
+        false
+      ); // 数据库模式不包含 password
       const expires = new Date();
       expires.setDate(expires.getDate() + 7); // 7天过期
 

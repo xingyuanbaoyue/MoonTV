@@ -44,6 +44,7 @@ async function generateSignature(
 // 生成认证Cookie（带签名）
 async function generateAuthCookie(username: string): Promise<string> {
   const authData: any = {
+    role: 'user',
     username,
     timestamp: Date.now(),
   };
