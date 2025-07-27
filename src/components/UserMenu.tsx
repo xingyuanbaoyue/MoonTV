@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { getAuthInfoFromBrowserCookie } from '@/lib/auth';
+import { checkForUpdates, CURRENT_VERSION, UpdateStatus } from '@/lib/version';
 
 interface AuthInfo {
   username?: string;
@@ -36,6 +37,10 @@ export const UserMenu: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordError, setPasswordError] = useState('');
+
+  // 版本检查相关状态
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
+  const [isChecking, setIsChecking] = useState(true);
 
   // 确保组件已挂载
   useEffect(() => {
@@ -102,6 +107,22 @@ export const UserMenu: React.FC = () => {
         setEnableOptimization(JSON.parse(savedEnableOptimization));
       }
     }
+  }, []);
+
+  // 版本检查
+  useEffect(() => {
+    const checkUpdate = async () => {
+      try {
+        const status = await checkForUpdates();
+        setUpdateStatus(status);
+      } catch (error) {
+        console.warn('版本检查失败:', error);
+      } finally {
+        setIsChecking(false);
+      }
+    };
+
+    checkUpdate();
   }, []);
 
   const handleMenuClick = () => {
@@ -374,6 +395,34 @@ export const UserMenu: React.FC = () => {
           >
             <LogOut className='w-4 h-4' />
             <span className='font-medium'>登出</span>
+          </button>
+
+          {/* 分割线 */}
+          <div className='my-1 border-t border-gray-200 dark:border-gray-700'></div>
+
+          {/* 版本信息 */}
+          <button
+            onClick={() =>
+              window.open('https://github.com/senshinya/MoonTV', '_blank')
+            }
+            className='w-full px-3 py-2 text-center flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors text-xs'
+          >
+            <div className='flex items-center gap-1'>
+              <span className='font-mono'>v{CURRENT_VERSION}</span>
+              {!isChecking &&
+                updateStatus &&
+                updateStatus !== UpdateStatus.FETCH_FAILED && (
+                  <div
+                    className={`w-2 h-2 rounded-full -translate-y-2 ${
+                      updateStatus === UpdateStatus.HAS_UPDATE
+                        ? 'bg-yellow-500'
+                        : updateStatus === UpdateStatus.NO_UPDATE
+                        ? 'bg-green-400'
+                        : ''
+                    }`}
+                  ></div>
+                )}
+            </div>
           </button>
         </div>
       </div>
@@ -672,13 +721,18 @@ export const UserMenu: React.FC = () => {
 
   return (
     <>
-      <button
-        onClick={handleMenuClick}
-        className='w-10 h-10 p-2 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-200/50 dark:text-gray-300 dark:hover:bg-gray-700/50 transition-colors'
-        aria-label='User Menu'
-      >
-        <User className='w-full h-full' />
-      </button>
+      <div className='relative'>
+        <button
+          onClick={handleMenuClick}
+          className='w-10 h-10 p-2 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-200/50 dark:text-gray-300 dark:hover:bg-gray-700/50 transition-colors'
+          aria-label='User Menu'
+        >
+          <User className='w-full h-full' />
+        </button>
+        {updateStatus === UpdateStatus.HAS_UPDATE && (
+          <div className='absolute top-[2px] right-[2px] w-2 h-2 bg-yellow-500 rounded-full'></div>
+        )}
+      </div>
 
       {/* 使用 Portal 将菜单面板渲染到 document.body */}
       {isOpen && mounted && createPortal(menuPanel, document.body)}
