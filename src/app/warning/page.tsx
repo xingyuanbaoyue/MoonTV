@@ -1,97 +1,435 @@
-import { Metadata } from 'next';
+/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/exhaustive-deps, no-console */
 
-export const metadata: Metadata = {
-  title: '安全警告 - MoonTV',
-  description: '站点安全配置警告',
-};
+'use client';
 
-export default function WarningPage() {
+import { ChevronRight } from 'lucide-react';
+import Link from 'next/link';
+import { Suspense, useEffect, useState } from 'react';
+
+// 客户端收藏 API
+import {
+  clearAllFavorites,
+  getAllFavorites,
+  getAllPlayRecords,
+  subscribeToDataUpdates,
+} from '@/lib/db.client';
+import { getDoubanCategories } from '@/lib/douban.client';
+import { DoubanItem } from '@/lib/types';
+
+import CapsuleSwitch from '@/components/CapsuleSwitch';
+import ContinueWatching from '@/components/ContinueWatching';
+import PageLayout from '@/components/PageLayout';
+import ScrollableRow from '@/components/ScrollableRow';
+import { useSite } from '@/components/SiteProvider';
+import VideoCard from '@/components/VideoCard';
+
+function HomeClient() {
+  const [activeTab, setActiveTab] = useState<'home' | 'favorites'>('home');
+  const [hotMovies, setHotMovies] = useState<DoubanItem[]>([]);
+  const [hotTvShows, setHotTvShows] = useState<DoubanItem[]>([]);
+  const [hotVarietyShows, setHotVarietyShows] = useState<DoubanItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { announcement } = useSite();
+
+  const [showAnnouncement, setShowAnnouncement] = useState(false);
+
+  // 检查公告弹窗状态
+  useEffect(() => {
+    if (typeof window !== 'undefined' && announcement) {
+      const hasSeenAnnouncement = localStorage.getItem('hasSeenAnnouncement');
+      if (hasSeenAnnouncement !== announcement) {
+        setShowAnnouncement(true);
+      } else {
+        setShowAnnouncement(Boolean(!hasSeenAnnouncement && announcement));
+      }
+    }
+  }, [announcement]);
+
+  // 收藏夹数据
+  type FavoriteItem = {
+    id: string;
+    source: string;
+    title: string;
+    poster: string;
+    episodes: number;
+    source_name: string;
+    currentEpisode?: number;
+    search_title?: string;
+  };
+
+  const [favoriteItems, setFavoriteItems] = useState<FavoriteItem[]>([]);
+
+  useEffect(() => {
+    const fetchDoubanData = async () => {
+      try {
+        setLoading(true);
+
+        // 并行获取热门电影、热门剧集和热门综艺
+        const [moviesData, tvShowsData, varietyShowsData] = await Promise.all([
+          getDoubanCategories({
+            kind: 'movie',
+            category: '热门',
+            type: '全部',
+          }),
+          getDoubanCategories({ kind: 'tv', category: 'tv', type: 'tv' }),
+          getDoubanCategories({ kind: 'tv', category: 'show', type: 'show' }),
+        ]);
+
+        if (moviesData.code === 200) {
+          setHotMovies(moviesData.list);
+        }
+
+        if (tvShowsData.code === 200) {
+          setHotTvShows(tvShowsData.list);
+        }
+
+        if (varietyShowsData.code === 200) {
+          setHotVarietyShows(varietyShowsData.list);
+        }
+      } catch (error) {
+        console.error('获取豆瓣数据失败:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDoubanData();
+  }, []);
+
+  // 处理收藏数据更新的函数
+  const updateFavoriteItems = async (allFavorites: Record<string, any>) => {
+    const allPlayRecords = await getAllPlayRecords();
+
+    // 根据保存时间排序（从近到远）
+    const sorted = Object.entries(allFavorites)
+      .sort(([, a], [, b]) => b.save_time - a.save_time)
+      .map(([key, fav]) => {
+        const plusIndex = key.indexOf('+');
+        const source = key.slice(0, plusIndex);
+        const id = key.slice(plusIndex + 1);
+
+        // 查找对应的播放记录，获取当前集数
+        const playRecord = allPlayRecords[key];
+        const currentEpisode = playRecord?.index;
+
+        return {
+          id,
+          source,
+          title: fav.title,
+          year: fav.year,
+          poster: fav.cover,
+          episodes: fav.total_episodes,
+          source_name: fav.source_name,
+          currentEpisode,
+          search_title: fav?.search_title,
+        } as FavoriteItem;
+      });
+    setFavoriteItems(sorted);
+  };
+
+  // 当切换到收藏夹时加载收藏数据
+  useEffect(() => {
+    if (activeTab !== 'favorites') return;
+
+    const loadFavorites = async () => {
+      const allFavorites = await getAllFavorites();
+      await updateFavoriteItems(allFavorites);
+    };
+
+    loadFavorites();
+
+    // 监听收藏更新事件
+    const unsubscribe = subscribeToDataUpdates(
+      'favoritesUpdated',
+      (newFavorites: Record<string, any>) => {
+        updateFavoriteItems(newFavorites);
+      }
+    );
+
+    return unsubscribe;
+  }, [activeTab]);
+
+  const handleCloseAnnouncement = (announcement: string) => {
+    setShowAnnouncement(false);
+    localStorage.setItem('hasSeenAnnouncement', announcement); // 记录已查看弹窗
+  };
+
   return (
-    <div className='min-h-screen bg-gradient-to-br from-red-50 to-orange-50 flex items-center justify-center p-4'>
-      <div className='max-w-2xl w-full bg-white rounded-2xl shadow-2xl p-4 sm:p-8 border border-red-200'>
-        {/* 警告图标 */}
-        <div className='flex justify-center mb-4 sm:mb-6'>
-          <div className='w-16 h-16 sm:w-20 sm:h-20 bg-red-100 rounded-full flex items-center justify-center'>
-            <svg
-              className='w-10 h-10 sm:w-12 sm:h-12 text-red-600'
-              fill='none'
-              stroke='currentColor'
-              viewBox='0 0 24 24'
+    <PageLayout>
+      <div className='px-2 sm:px-10 py-4 sm:py-8 overflow-visible'>
+        {/* 应用下载入口 */}
+        <div className='mb-8 text-center'>
+          <h2 className='text-2xl font-bold text-gray-800 dark:text-white mb-6'>应用下载</h2>
+          <div className='flex flex-wrap justify-center gap-4'>
+            {/* 安卓下载按钮 */}
+            <a
+              href='https://ai.xyby.dpdns.org/v1.0.0.apk'
+              download='MoonTV_v1.0.0.apk'
+              className='inline-flex items-center justify-center px-6 py-3 text-base font-medium text-white bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-md hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:from-blue-600 dark:to-blue-700 dark:hover:from-blue-700 dark:hover:to-blue-800 transition-all duration-200 transform hover:-translate-y-0.5 hover:shadow-lg'
             >
-              <path
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                strokeWidth={2}
-                d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z'
-              />
-            </svg>
+              <svg className='w-5 h-5 mr-2' fill='none' stroke='currentColor' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'>
+                <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4' />
+              </svg>
+              安卓版下载
+            </a>
+            
+            {/* Windows下载按钮 */}
+            <a
+              href='https://github.com/xingyuanbaoyue/MoonTV/releases/download/v1.0.0/win32-x64.exe'
+              download='MoonTV_Windows_v1.0.0.exe'
+              className='inline-flex items-center justify-center px-6 py-3 text-base font-medium text-white bg-gradient-to-r from-green-500 to-green-600 rounded-lg shadow-md hover:from-green-600 hover:to-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 dark:from-green-600 dark:to-green-700 dark:hover:from-green-700 dark:hover:to-green-800 transition-all duration-200 transform hover:-translate-y-0.5 hover:shadow-lg'
+            >
+              <svg className='w-5 h-5 mr-2' fill='none' stroke='currentColor' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'>
+                <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M9 3v2m6-2v2m3 3h2m-2 10h2m-10 0h2m-2-3h8m-8 0H7m8 0h2M3 10h18v8a2 2 0 01-2 2H5a2 2 0 01-2-2v-8z' />
+              </svg>
+              Windows 版下载
+            </a>
           </div>
         </div>
 
-        {/* 标题 */}
-        <div className='text-center mb-6 sm:mb-8'>
-          <h1 className='text-2xl sm:text-3xl font-bold text-gray-900 mb-2'>
-            安全合规配置警告
-          </h1>
-          <div className='w-12 sm:w-16 h-1 bg-red-500 mx-auto rounded-full'></div>
+        {/* 顶部 Tab 切换 */}
+        <div className='mb-8 flex justify-center'>
+          <CapsuleSwitch
+            options={[
+              { label: '首页', value: 'home' },
+              { label: '收藏夹', value: 'favorites' },
+            ]}
+            active={activeTab}
+            onChange={(value) => setActiveTab(value as 'home' | 'favorites')}
+          />
         </div>
 
-        {/* 警告内容 */}
-        <div className='space-y-4 sm:space-y-6 text-gray-700'>
-          <div className='bg-red-50 border-l-4 border-red-500 p-3 sm:p-4 rounded-r-lg'>
-            <p className='text-base sm:text-lg font-semibold text-red-800 mb-2'>
-              ⚠️ 安全风险提示
-            </p>
-            <p className='text-sm sm:text-base text-red-700'>
-              检测到您的站点未配置访问控制，存在潜在的安全风险和法律合规问题。
-            </p>
-          </div>
+        <div className='max-w-[95%] mx-auto'>
+          {activeTab === 'favorites' ? (
+            // 收藏夹视图
+            <section className='mb-8'>
+              <div className='mb-4 flex items-center justify-between'>
+                <h2 className='text-xl font-bold text-gray-800 dark:text-gray-200'>
+                  我的收藏
+                </h2>
+                {favoriteItems.length > 0 && (
+                  <button
+                    className='text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                    onClick={async () => {
+                      await clearAllFavorites();
+                      setFavoriteItems([]);
+                    }}
+                  >
+                    清空
+                  </button>
+                )}
+              </div>
+              <div className='justify-start grid grid-cols-3 gap-x-2 gap-y-14 sm:gap-y-20 px-0 sm:px-2 sm:grid-cols-[repeat(auto-fill,_minmax(11rem,_1fr))] sm:gap-x-8'>
+                {favoriteItems.map((item) => (
+                  <div key={item.id + item.source} className='w-full'>
+                    <VideoCard
+                      query={item.search_title}
+                      {...item}
+                      from='favorite'
+                      type={item.episodes > 1 ? 'tv' : ''}
+                    />
+                  </div>
+                ))}
+                {favoriteItems.length === 0 && (
+                  <div className='col-span-full text-center text-gray-500 py-8 dark:text-gray-400'>
+                    暂无收藏内容
+                  </div>
+                )}
+              </div>
+            </section>
+          ) : (
+            // 首页视图
+            <>
+              {/* 继续观看 */}
+              <ContinueWatching />
 
-          <div className='space-y-3 sm:space-y-4'>
-            <h2 className='text-lg sm:text-xl font-semibold text-gray-900'>
-              主要风险
-            </h2>
-            <ul className='space-y-2 sm:space-y-3 text-sm sm:text-base text-gray-600'>
-              <li className='flex items-start'>
-                <span className='text-red-500 mr-2 mt-0.5'>•</span>
-                <span>未经授权的访问可能导致内容被恶意传播</span>
-              </li>
-              <li className='flex items-start'>
-                <span className='text-red-500 mr-2 mt-0.5'>•</span>
-                <span>服务器资源可能被滥用，影响正常服务</span>
-              </li>
-              <li className='flex items-start'>
-                <span className='text-red-500 mr-2 mt-0.5'>•</span>
-                <span>可能收到相关权利方的法律通知</span>
-              </li>
-              <li className='flex items-start'>
-                <span className='text-red-500 mr-2 mt-0.5'>•</span>
-                <span>服务提供商可能因合规问题终止服务</span>
-              </li>
-            </ul>
-          </div>
+              {/* 热门电影 */}
+              <section className='mb-8'>
+                <div className='mb-4 flex items-center justify-between'>
+                  <h2 className='text-xl font-bold text-gray-800 dark:text-gray-200'>
+                    热门电影
+                  </h2>
+                  <Link
+                    href='/douban?type=movie'
+                    className='flex items-center text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                  >
+                    查看更多
+                    <ChevronRight className='w-4 h-4 ml-1' />
+                  </Link>
+                </div>
+                <ScrollableRow>
+                  {loading
+                    ? // 加载状态显示灰色占位数据
+                      Array.from({ length: 8 }).map((_, index) => (
+                        <div
+                          key={index}
+                          className='min-w-[96px] w-24 sm:min-w-[180px] sm:w-44'
+                        >
+                          <div className='relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-gray-200 animate-pulse dark:bg-gray-800'>
+                            <div className='absolute inset-0 bg-gray-300 dark:bg-gray-700'></div>
+                          </div>
+                          <div className='mt-2 h-4 bg-gray-200 rounded animate-pulse dark:bg-gray-800'></div>
+                        </div>
+                      ))
+                    : // 显示真实数据
+                      hotMovies.map((movie, index) => (
+                        <div
+                          key={index}
+                          className='min-w-[96px] w-24 sm:min-w-[180px] sm:w-44'
+                        >
+                          <VideoCard
+                            from='douban'
+                            title={movie.title}
+                            poster={movie.poster}
+                            douban_id={movie.id}
+                            rate={movie.rate}
+                            year={movie.year}
+                            type='movie'
+                          />
+                        </div>
+                      ))}
+                </ScrollableRow>
+              </section>
 
-          <div className='bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4'>
-            <h3 className='text-base sm:text-lg font-semibold text-yellow-800 mb-2'>
-              🔒 安全配置建议
-            </h3>
-            <p className='text-sm sm:text-base text-yellow-700'>
-              请立即配置{' '}
-              <code className='bg-yellow-100 px-1.5 py-0.5 rounded text-xs sm:text-sm font-mono'>
-                PASSWORD
-              </code>{' '}
-              环境变量以启用访问控制。
-            </p>
-          </div>
-        </div>
+              {/* 热门剧集 */}
+              <section className='mb-8'>
+                <div className='mb-4 flex items-center justify-between'>
+                  <h2 className='text-xl font-bold text-gray-800 dark:text-gray-200'>
+                    热门剧集
+                  </h2>
+                  <Link
+                    href='/douban?type=tv'
+                    className='flex items-center text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                  >
+                    查看更多
+                    <ChevronRight className='w-4 h-4 ml-1' />
+                  </Link>
+                </div>
+                <ScrollableRow>
+                  {loading
+                    ? // 加载状态显示灰色占位数据
+                      Array.from({ length: 8 }).map((_, index) => (
+                        <div
+                          key={index}
+                          className='min-w-[96px] w-24 sm:min-w-[180px] sm:w-44'
+                        >
+                          <div className='relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-gray-200 animate-pulse dark:bg-gray-800'>
+                            <div className='absolute inset-0 bg-gray-300 dark:bg-gray-700'></div>
+                          </div>
+                          <div className='mt-2 h-4 bg-gray-200 rounded animate-pulse dark:bg-gray-800'></div>
+                        </div>
+                      ))
+                    : // 显示真实数据
+                      hotTvShows.map((show, index) => (
+                        <div
+                          key={index}
+                          className='min-w-[96px] w-24 sm:min-w-[180px] sm:w-44'
+                        >
+                          <VideoCard
+                            from='douban'
+                            title={show.title}
+                            poster={show.poster}
+                            douban_id={show.id}
+                            rate={show.rate}
+                            year={show.year}
+                          />
+                        </div>
+                      ))}
+                </ScrollableRow>
+              </section>
 
-        {/* 底部装饰 */}
-        <div className='mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-gray-200'>
-          <div className='text-center text-xs sm:text-sm text-gray-500'>
-            <p>为确保系统安全性和合规性，请及时完成安全配置</p>
-          </div>
+              {/* 热门综艺 */}
+              <section className='mb-8'>
+                <div className='mb-4 flex items-center justify-between'>
+                  <h2 className='text-xl font-bold text-gray-800 dark:text-gray-200'>
+                    热门综艺
+                  </h2>
+                  <Link
+                    href='/douban?type=show'
+                    className='flex items-center text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                  >
+                    查看更多
+                    <ChevronRight className='w-4 h-4 ml-1' />
+                  </Link>
+                </div>
+                <ScrollableRow>
+                  {loading
+                    ? // 加载状态显示灰色占位数据
+                      Array.from({ length: 8 }).map((_, index) => (
+                        <div
+                          key={index}
+                          className='min-w-[96px] w-24 sm:min-w-[180px] sm:w-44'
+                        >
+                          <div className='relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-gray-200 animate-pulse dark:bg-gray-800'>
+                            <div className='absolute inset-0 bg-gray-300 dark:bg-gray-700'></div>
+                          </div>
+                          <div className='mt-2 h-4 bg-gray-200 rounded animate-pulse dark:bg-gray-800'></div>
+                        </div>
+                      ))
+                    : // 显示真实数据
+                      hotVarietyShows.map((show, index) => (
+                        <div
+                          key={index}
+                          className='min-w-[96px] w-24 sm:min-w-[180px] sm:w-44'
+                        >
+                          <VideoCard
+                            from='douban'
+                            title={show.title}
+                            poster={show.poster}
+                            douban_id={show.id}
+                            rate={show.rate}
+                            year={show.year}
+                          />
+                        </div>
+                      ))}
+                </ScrollableRow>
+              </section>
+            </>
+          )}
         </div>
       </div>
-    </div>
+      {announcement && showAnnouncement && (
+        <div
+          className={`fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm dark:bg-black/70 p-4 transition-opacity duration-300 ${
+            showAnnouncement ? '' : 'opacity-0 pointer-events-none'
+          }`}
+        >
+          <div className='w-full max-w-md rounded-xl bg-white p-6 shadow-xl dark:bg-gray-900 transform transition-all duration-300 hover:shadow-2xl'>
+            <div className='flex justify-between items-start mb-4'>
+              <h3 className='text-2xl font-bold tracking-tight text-gray-800 dark:text-white border-b border-green-500 pb-1'>
+                提示
+              </h3>
+              <button
+                onClick={() => handleCloseAnnouncement(announcement)}
+                className='text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-white transition-colors'
+                aria-label='关闭'
+              ></button>
+            </div>
+            <div className='mb-6'>
+              <div className='relative overflow-hidden rounded-lg mb-4 bg-green-50 dark:bg-green-900/20'>
+                <div className='absolute inset-y-0 left-0 w-1.5 bg-green-500 dark:bg-green-400'></div>
+                <p className='ml-4 text-gray-600 dark:text-gray-300 leading-relaxed'>
+                  {announcement}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => handleCloseAnnouncement(announcement)}
+              className='w-full rounded-lg bg-gradient-to-r from-green-600 to-green-700 px-4 py-3 text-white font-medium shadow-md hover:shadow-lg hover:from-green-700 hover:to-green-800 dark:from-green-600 dark:to-green-700 dark:hover:from-green-700 dark:hover:to-green-800 transition-all duration-300 transform hover:-translate-y-0.5'
+            >
+              我知道了
+            </button>
+          </div>
+        </div>
+      )}
+    </PageLayout>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense>
+      <HomeClient />
+    </Suspense>
   );
 }
