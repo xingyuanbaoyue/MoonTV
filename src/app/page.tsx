@@ -212,6 +212,17 @@ function HomeClient() {
             <>
               {/* 继续观看 */}
               <ContinueWatching />
+              {/* 下载按钮：apk，Windows客户端github */}
+              <div className='mb-6 px-1'>
+                <Link
+                  href='https://github.com/xingyuanbaoyue/MoonTV/releases/tag/v1.0.0'
+                  target='_blank'
+                  rel='noopener noreferrer'
+                  className='inline-flex items-center rounded-lg bg-blue-600 px-3 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 text-sm'
+                >
+                  apk，Windows客户端github
+                </Link>
+              </div>
 
               {/* 热门电影 */}
               <section className='mb-8'>
