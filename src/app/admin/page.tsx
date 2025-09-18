@@ -1359,6 +1359,7 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
     ImageProxy: '',
     DoubanProxy: '',
     DisableYellowFilter: false,
+    AlwaysShowAnnouncement: false,
   });
   // 保存状态
   const [saving, setSaving] = useState(false);
