@@ -33,15 +33,10 @@ function HomeClient() {
 
   const [showAnnouncement, setShowAnnouncement] = useState(false);
 
-  // 检查公告弹窗状态
+  // 检查公告弹窗状态：每次进入页面且存在 announcement 时都弹出
   useEffect(() => {
-    if (typeof window !== 'undefined' && announcement) {
-      const hasSeenAnnouncement = localStorage.getItem('hasSeenAnnouncement');
-      if (hasSeenAnnouncement !== announcement) {
-        setShowAnnouncement(true);
-      } else {
-        setShowAnnouncement(Boolean(!hasSeenAnnouncement && announcement));
-      }
+    if (announcement) {
+      setShowAnnouncement(true);
     }
   }, [announcement]);
 
@@ -149,9 +144,9 @@ function HomeClient() {
     return unsubscribe;
   }, [activeTab]);
 
-  const handleCloseAnnouncement = (announcement: string) => {
+  const handleCloseAnnouncement = (_announcement: string) => {
+    // 不记录本地已查看状态，以便每次进入都再次弹出
     setShowAnnouncement(false);
-    localStorage.setItem('hasSeenAnnouncement', announcement); // 记录已查看弹窗
   };
 
   return (
