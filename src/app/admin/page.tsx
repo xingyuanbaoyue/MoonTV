@@ -60,7 +60,6 @@ interface SiteConfig {
   ImageProxy: string;
   DoubanProxy: string;
   DisableYellowFilter: boolean;
-  AlwaysShowAnnouncement: boolean;
 }
 
 // 视频源数据类型
@@ -1359,7 +1358,6 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
     ImageProxy: '',
     DoubanProxy: '',
     DisableYellowFilter: false,
-    AlwaysShowAnnouncement: false,
   });
   // 保存状态
   const [saving, setSaving] = useState(false);

@@ -36,7 +36,6 @@ export async function POST(request: NextRequest) {
       ImageProxy,
       DoubanProxy,
       DisableYellowFilter,
-      AlwaysShowAnnouncement,
     } = body as {
       SiteName: string;
       Announcement: string;
@@ -45,7 +44,6 @@ export async function POST(request: NextRequest) {
       ImageProxy: string;
       DoubanProxy: string;
       DisableYellowFilter: boolean;
-      AlwaysShowAnnouncement: boolean;
     };
 
     // 参数校验
@@ -56,8 +54,7 @@ export async function POST(request: NextRequest) {
       typeof SiteInterfaceCacheTime !== 'number' ||
       typeof ImageProxy !== 'string' ||
       typeof DoubanProxy !== 'string' ||
-      typeof DisableYellowFilter !== 'boolean' ||
-      typeof AlwaysShowAnnouncement !== 'boolean'
+      typeof DisableYellowFilter !== 'boolean'
     ) {
       return NextResponse.json({ error: '参数格式错误' }, { status: 400 });
     }
@@ -85,7 +82,6 @@ export async function POST(request: NextRequest) {
       ImageProxy,
       DoubanProxy,
       DisableYellowFilter,
-      AlwaysShowAnnouncement,
     };
 
     // 写入数据库

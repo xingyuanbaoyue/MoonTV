@@ -7,7 +7,6 @@ export interface AdminConfig {
     ImageProxy: string;
     DoubanProxy: string;
     DisableYellowFilter: boolean;
-    AlwaysShowAnnouncement: boolean;
   };
   UserConfig: {
     AllowRegister: boolean;
