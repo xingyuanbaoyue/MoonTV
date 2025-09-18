@@ -52,6 +52,7 @@ export default async function RootLayout({
   let doubanProxy = process.env.NEXT_PUBLIC_DOUBAN_PROXY || '';
   let disableYellowFilter =
     process.env.NEXT_PUBLIC_DISABLE_YELLOW_FILTER === 'true';
+  let alwaysShowAnnouncement = false;
   let customCategories =
     (RuntimeConfig as any).custom_category?.map((category: any) => ({
       name: 'name' in category ? category.name : '',
@@ -69,6 +70,8 @@ export default async function RootLayout({
     imageProxy = config.SiteConfig.ImageProxy;
     doubanProxy = config.SiteConfig.DoubanProxy;
     disableYellowFilter = config.SiteConfig.DisableYellowFilter;
+    alwaysShowAnnouncement =
+      (config.SiteConfig as any).AlwaysShowAnnouncement || false;
     customCategories = config.CustomCategories.filter(
       (category) => !category.disabled
     ).map((category) => ({
@@ -85,6 +88,7 @@ export default async function RootLayout({
     IMAGE_PROXY: imageProxy,
     DOUBAN_PROXY: doubanProxy,
     DISABLE_YELLOW_FILTER: disableYellowFilter,
+    ALWAYS_SHOW_ANNOUNCEMENT: alwaysShowAnnouncement,
     CUSTOM_CATEGORIES: customCategories,
   };
 
@@ -112,7 +116,11 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <SiteProvider siteName={siteName} announcement={announcement}>
+          <SiteProvider
+            siteName={siteName}
+            announcement={announcement}
+            alwaysShowAnnouncement={alwaysShowAnnouncement}
+          >
             {children}
             <GlobalErrorIndicator />
           </SiteProvider>
