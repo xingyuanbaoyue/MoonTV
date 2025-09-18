@@ -60,6 +60,7 @@ interface SiteConfig {
   ImageProxy: string;
   DoubanProxy: string;
   DisableYellowFilter: boolean;
+  AlwaysShowAnnouncement: boolean;
 }
 
 // 视频源数据类型

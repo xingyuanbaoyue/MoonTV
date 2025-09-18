@@ -29,21 +29,29 @@ function HomeClient() {
   const [hotTvShows, setHotTvShows] = useState<DoubanItem[]>([]);
   const [hotVarietyShows, setHotVarietyShows] = useState<DoubanItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const { announcement } = useSite();
+  const { announcement, alwaysShowAnnouncement } = useSite();
 
   const [showAnnouncement, setShowAnnouncement] = useState(false);
 
   // 检查公告弹窗状态
+  // - 当 alwaysShowAnnouncement 为 true：每次进入页面都弹出（只要有 announcement 文本）
+  // - 否则：仅在本地未看过当前 announcement 时弹出一次
   useEffect(() => {
-    if (typeof window !== 'undefined' && announcement) {
-      const hasSeenAnnouncement = localStorage.getItem('hasSeenAnnouncement');
-      if (hasSeenAnnouncement !== announcement) {
-        setShowAnnouncement(true);
-      } else {
-        setShowAnnouncement(Boolean(!hasSeenAnnouncement && announcement));
-      }
+    if (!announcement) return;
+    if (alwaysShowAnnouncement) {
+      setShowAnnouncement(true);
+      return;
     }
-  }, [announcement]);
+    try {
+      const hasSeen = localStorage.getItem('hasSeenAnnouncement');
+      if (hasSeen !== announcement) {
+        setShowAnnouncement(true);
+      }
+    } catch (e) {
+      // 若本地存储不可用，退化为弹出一次
+      setShowAnnouncement(true);
+    }
+  }, [announcement, alwaysShowAnnouncement]);
 
   // 收藏夹数据
   type FavoriteItem = {
@@ -149,9 +157,15 @@ function HomeClient() {
     return unsubscribe;
   }, [activeTab]);
 
-  const handleCloseAnnouncement = (announcement: string) => {
+  const handleCloseAnnouncement = (announcementText: string) => {
     setShowAnnouncement(false);
-    localStorage.setItem('hasSeenAnnouncement', announcement); // 记录已查看弹窗
+    if (!alwaysShowAnnouncement && announcementText) {
+      try {
+        localStorage.setItem('hasSeenAnnouncement', announcementText);
+      } catch (e) {
+        // 忽略本地存储失败
+      }
+    }
   };
 
   return (
