@@ -218,14 +218,20 @@ function HomeClient() {
                   <span>APK下载</span>
                   <span className='absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5'>不推荐</span>
                 </a>
-                <a
-                  href='https://github.com/xingyuanbaoyue/MoonTV/releases/download/v1.0.0/win32-x64.exe'
-                  target='_blank'
-                  rel='noopener noreferrer'
-                  className='inline-flex items-center rounded-lg bg-blue-600 px-3 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 text-sm'
-                >
-                  Windows客户端
-                </a>
+                <div className='relative group'>
+                  <a
+                    href='https://github.com/xingyuanbaoyue/MoonTV/releases/download/v1.0.0/win32-x64.exe'
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    className='inline-flex items-center rounded-lg bg-blue-600 px-3 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 text-sm'
+                  >
+                    Windows客户端
+                  </a>
+                  <div className='absolute left-1/2 -translate-x-1/2 bottom-full mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none'>
+                    <div className='absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-2 h-2 bg-gray-800 transform rotate-45'></div>
+                    国内用户可能需要加速GitHub
+                  </div>
+                </div>
                 <Link
                   href='https://github.com/xingyuanbaoyue/MoonTV'
                   target='_blank'
