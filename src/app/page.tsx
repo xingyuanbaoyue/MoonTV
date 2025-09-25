@@ -209,8 +209,9 @@ function HomeClient() {
               {/* 下载按钮 */}
               <div className='mb-6 px-1 space-x-3 flex flex-wrap gap-2'>
                 <a
-                  href='/v1.0.0.apk'
-                  download='MoonTV-v1.0.0.apk'
+                  href='https://ai.xyby.dpdns.org/v1.0.0.apk'
+                  target='_blank'
+                  rel='noopener noreferrer'
                   className='inline-flex items-center rounded-lg bg-gray-400 px-3 py-2 text-white hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 text-sm relative group'
                   title='不推荐使用APK版本'
                 >
@@ -218,8 +219,9 @@ function HomeClient() {
                   <span className='absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5'>不推荐</span>
                 </a>
                 <a
-                  href='/win32-x64.exe'
-                  download='MoonTV-Windows-x64.exe'
+                  href='https://github.com/xingyuanbaoyue/MoonTV/releases/download/v1.0.0/win32-x64.exe'
+                  target='_blank'
+                  rel='noopener noreferrer'
                   className='inline-flex items-center rounded-lg bg-blue-600 px-3 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 text-sm'
                 >
                   Windows客户端
